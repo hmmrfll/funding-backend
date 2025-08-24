@@ -1,0 +1,43 @@
+User-agent: *
+Disallow: /
+
+Allow: /health
+
+Disallow: /api/
+Disallow: /webhook/
+Disallow: /uploads/
+
+Disallow: /*.env$
+Disallow: /*.json$
+Disallow: /*.js$
+Disallow: /*.sql$
+Disallow: /*.log$
+
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+User-agent: Nikto
+Disallow: /
+
+User-agent: sqlmap
+Disallow: /
+
+User-agent: w3af
+Disallow: /
+
+User-agent: *bot*
+Disallow: /
+
+User-agent: *crawler*
+Disallow: /
+
+User-agent: *spider*
+Disallow: /
+
+Crawl-delay: 10

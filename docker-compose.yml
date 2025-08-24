@@ -1,0 +1,49 @@
+version: '3'
+
+networks:
+  dev:
+
+services:
+  db:
+    image: postgres:13
+    container_name: ${PG_CONTAINER_NAME}
+    restart: always
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DATABASE}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${PG_PORT}:5432"
+    networks:
+      - dev
+
+  backend:
+    build: .
+    container_name: ${BACKEND_CONTAINER_NAME}
+    ports:
+      - "${BACKEND_PORT}:3001"
+    depends_on:
+      - db
+    networks:
+      - dev
+    environment:
+      NODE_ENV: development
+      PG_HOST: db
+      PG_PORT: 5432
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PG_DATABASE: ${PG_DATABASE}
+      BOT_TOKEN: ${BOT_TOKEN}
+      SERVER_URL: ${SERVER_URL}
+      MINI_APP_URL: ${MINI_APP_URL}
+      BACKEND_HOST: ${BACKEND_HOST}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    working_dir: /app
+
+volumes:
+  pgdata:
