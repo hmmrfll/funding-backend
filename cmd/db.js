@@ -101,7 +101,13 @@ class DatabaseManager {
 	}
 
 	async validateRequiredTables(client) {
-		const requiredTables = [];
+		const requiredTables = [
+			'users',
+			'funding_rates',
+			'arbitrage_opportunities',
+			'user_alerts',
+			'notifications',
+		];
 
 		for (const table of requiredTables) {
 			const checkQuery = `

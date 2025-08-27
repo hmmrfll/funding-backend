@@ -7,6 +7,11 @@ const Logger = require('../internal/shared/logger');
 const TelegramService = require('../internal/gateways/telegram');
 const DatabaseManager = require('./db');
 
+const UserStorage = require('../internal/user/storage');
+const UserService = require('../internal/user/service');
+const UserRestService = require('../internal/resthttp/services/api_v1_user');
+const AuthRestService = require('../internal/resthttp/services/api_v1_auth');
+
 const AuthMiddleware = require('../internal/shared/middleware/auth');
 
 const logger = new Logger();
@@ -19,16 +24,15 @@ async function startApplication() {
 		const db = new DatabaseManager(config, logger);
 		await db.init();
 
-		// const userStorage = new UserStorage(db, logger);
-		// const userService = new UserService(userStorage, logger);
-
 		const authMiddleware = new AuthMiddleware(config, logger);
+
+		const userStorage = new UserStorage(db, logger);
+		const userService = new UserService(userStorage, logger);
+		const userRestService = new UserRestService(userService, authMiddleware, logger);
+		const authRestService = new AuthRestService(db, logger);
 
 		const telegramService = new TelegramService(config.telegram, db, logger);
 		await telegramService.init();
-
-		// const userRestService = new UserRestService(userService, authMiddleware, logger);
-
 
 		const app = express();
 
@@ -62,9 +66,7 @@ async function startApplication() {
 			});
 		});
 
-		const allRoutes = [
-			// ...userRestService.getRoutes(),
-		];
+		const allRoutes = [...userRestService.getRoutes(), ...authRestService.getRoutes()];
 
 		allRoutes.forEach((route) => {
 			if (route.middleware) {

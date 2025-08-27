@@ -34,7 +34,9 @@ const config = {
 	telegram: {
 		botToken: process.env.BOT_TOKEN,
 		miniAppUrl: process.env.MINI_APP_URL,
+		webAppUrl: process.env.WEB_APP_URL || process.env.MINI_APP_URL,
 		webhookUrl: process.env.SERVER_URL ? `${process.env.SERVER_URL}/webhook/telegram` : null,
+		jwtSecret: process.env.JWT_SECRET,
 	},
 
 	jwt: {
