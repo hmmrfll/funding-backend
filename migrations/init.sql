@@ -29,13 +29,16 @@ CREATE TABLE IF NOT EXISTS funding_rates (
     symbol VARCHAR(50) NOT NULL,
     rate DECIMAL(10, 6) NOT NULL,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  -- Добавить эту строку
 );
 
 -- Индексы для таблицы funding_rates
 CREATE INDEX IF NOT EXISTS idx_funding_rates_exchange_symbol ON funding_rates(exchange, symbol);
 CREATE INDEX IF NOT EXISTS idx_funding_rates_timestamp ON funding_rates(timestamp);
 CREATE INDEX IF NOT EXISTS idx_funding_rates_symbol_timestamp ON funding_rates(symbol, timestamp);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_funding_rates_unique ON funding_rates(exchange, symbol, timestamp);
 
 -- Таблица арбитражных возможностей
 CREATE TABLE IF NOT EXISTS arbitrage_opportunities (

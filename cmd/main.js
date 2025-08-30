@@ -12,6 +12,12 @@ const UserService = require('../internal/user/service');
 const UserRestService = require('../internal/resthttp/services/api_v1_user');
 const AuthRestService = require('../internal/resthttp/services/api_v1_auth');
 
+const ArbitrageStorage = require('../internal/arbitrage/storage');
+const ArbitrageService = require('../internal/arbitrage/service');
+const ArbitrageRestService = require('../internal/resthttp/services/api_v1_arbitrage');
+
+const DataScheduler = require('./scheduler');
+
 const AuthMiddleware = require('../internal/shared/middleware/auth');
 
 const logger = new Logger();
@@ -31,8 +37,15 @@ async function startApplication() {
 		const userRestService = new UserRestService(userService, authMiddleware, logger);
 		const authRestService = new AuthRestService(db, logger);
 
+		const arbitrageStorage = new ArbitrageStorage(db, logger);
+		const arbitrageService = new ArbitrageService(arbitrageStorage, logger);
+		const arbitrageRestService = new ArbitrageRestService(arbitrageService, authMiddleware, logger);
+
 		const telegramService = new TelegramService(config.telegram, db, logger);
 		await telegramService.init();
+
+		const scheduler = new DataScheduler(arbitrageService, logger);
+		scheduler.start();
 
 		const app = express();
 
@@ -66,7 +79,11 @@ async function startApplication() {
 			});
 		});
 
-		const allRoutes = [...userRestService.getRoutes(), ...authRestService.getRoutes()];
+		const allRoutes = [
+			...userRestService.getRoutes(),
+			...authRestService.getRoutes(),
+			...arbitrageRestService.getRoutes(),
+		];
 
 		allRoutes.forEach((route) => {
 			if (route.middleware) {
