@@ -15,7 +15,13 @@ class DataScheduler {
 
 			try {
 				this.isRunning = true;
-				await this.arbitrageService.getFundingRatesComparison();
+				const result = await this.arbitrageService.getFundingRatesComparison();
+
+				this.logger.info(
+					`Scheduled update: ${Object.keys(result.comparison).length} pairs, ${
+						result.opportunities.length
+					} opportunities`,
+				);
 			} catch (error) {
 				this.logger.error('Error in scheduled funding rates update:', error);
 			} finally {

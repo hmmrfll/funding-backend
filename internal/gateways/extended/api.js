@@ -13,28 +13,14 @@ class ExtendedAPI {
 			timeout: 15000,
 		});
 
-		this.supportedMarkets = [
-			'BTC-USD',
-			'ETH-USD',
-			'SOL-USD',
-			'AVAX-USD',
-			'MATIC-USD',
-			'DOGE-USD',
-			'ADA-USD',
-			'DOT-USD',
-			'UNI-USD',
-			'LINK-USD',
-		];
+		this.supportedMarkets = null;
 
 		this.setupInterceptors();
 	}
 
 	setupInterceptors() {
 		this.client.interceptors.request.use(
-			(config) => {
-				this.logger.debug(`Extended API Request: ${config.method.toUpperCase()} ${config.url}`);
-				return config;
-			},
+			(config) => config,
 			(error) => {
 				this.logger.error('Extended API Request Error:', error);
 				return Promise.reject(error);
@@ -42,10 +28,7 @@ class ExtendedAPI {
 		);
 
 		this.client.interceptors.response.use(
-			(response) => {
-				this.logger.debug(`Extended API Response: ${response.status} for ${response.config.url}`);
-				return response;
-			},
+			(response) => response,
 			(error) => {
 				this.logger.error('Extended API Response Error:', error.response?.data || error.message);
 				return Promise.reject(error);
@@ -60,17 +43,9 @@ class ExtendedAPI {
 				return marketsData;
 			}
 
-			return await this.getLatestFundingRates();
+			return await this.getFallbackFundingRates();
 		} catch (error) {
 			this.logger.error('Error fetching Extended funding rates:', error);
-			return [];
-		}
-	}
-
-	async processEndpointResponse(data, endpoint) {
-		if (endpoint === '/api/v1/info/markets') {
-			return await this.getAllMarketsInfo();
-		} else {
 			return [];
 		}
 	}
@@ -81,21 +56,34 @@ class ExtendedAPI {
 
 			if (response.data && response.data.status === 'OK' && response.data.data) {
 				const markets = response.data.data;
+				const fundingData = [];
 
-				const fundingData = markets
-					.filter((market) => this.supportedMarkets.includes(market.name))
-					.map((market) => {
+				markets.forEach((market) => {
+					try {
 						const stats = market.marketStats || {};
+						const symbol = this.normalizeSymbol(market.name);
 
-						return {
-							symbol: this.normalizeSymbol(market.name),
-							fundingRate: this.parseNumeric(stats.fundingRate),
+						if (!stats.fundingRate && stats.fundingRate !== 0) {
+							return;
+						}
+
+						const fundingRate = this.parseNumeric(stats.fundingRate);
+
+						if (fundingRate === null) {
+							return;
+						}
+
+						fundingData.push({
+							symbol: symbol,
+							fundingRate: fundingRate,
 							markPrice: this.parseNumeric(stats.markPrice),
 							nextFundingTime: stats.nextFundingRate ? new Date(stats.nextFundingRate) : null,
 							market: market.name,
-						};
-					})
-					.filter((item) => item.symbol && item.fundingRate !== null);
+						});
+					} catch (error) {
+						this.logger.error(`Extended: Error processing market ${market.name}:`, error);
+					}
+				});
 
 				return fundingData;
 			}
@@ -103,27 +91,34 @@ class ExtendedAPI {
 			return [];
 		} catch (error) {
 			this.logger.error('Error fetching Extended markets info:', error);
-			return await this.getLatestFundingRates();
+			throw error;
 		}
 	}
 
-	async getLatestFundingRates() {
+	async getFallbackFundingRates() {
 		try {
+			const marketsResponse = await this.client.get('/api/v1/info/markets');
+
+			if (!marketsResponse.data || !marketsResponse.data.data) {
+				return [];
+			}
+
+			const markets = marketsResponse.data.data.map((m) => m.name);
 			const endTime = Date.now();
 			const startTime = endTime - 60 * 60 * 1000;
 
-			const promises = this.supportedMarkets.map((market) => this.getMarketFundingRate(market, startTime, endTime));
+			const promises = markets.map((market) => this.getMarketFundingRate(market, startTime, endTime));
 
 			const results = await Promise.allSettled(promises);
 
 			const fundingData = results
 				.filter((result) => result.status === 'fulfilled' && result.value)
 				.map((result) => result.value)
-				.filter((data) => data);
+				.filter((data) => data && data.fundingRate !== null);
 
 			return fundingData;
 		} catch (error) {
-			this.logger.error('Error in fallback funding rates fetch:', error);
+			this.logger.error('Error in Extended fallback funding rates fetch:', error);
 			return [];
 		}
 	}
@@ -140,9 +135,14 @@ class ExtendedAPI {
 			if (response.data && response.data.status === 'OK' && response.data.data && response.data.data.length > 0) {
 				const latestFunding = response.data.data[0];
 
+				const fundingRate = this.parseNumeric(latestFunding.f);
+				if (fundingRate === null) {
+					return null;
+				}
+
 				return {
 					symbol: this.normalizeSymbol(market),
-					fundingRate: this.parseNumeric(latestFunding.f),
+					fundingRate: fundingRate,
 					markPrice: null,
 					nextFundingTime: null,
 					market: market,
@@ -152,19 +152,22 @@ class ExtendedAPI {
 
 			return null;
 		} catch (error) {
-			this.logger.debug(`Failed to get funding for ${market}:`, error.message);
 			return null;
 		}
 	}
 
 	normalizeSymbol(market) {
-		return market.split('-')[0];
+		if (!market) return null;
+		return market.split('-')[0].toUpperCase();
 	}
 
 	parseNumeric(value) {
 		if (value === null || value === undefined || value === '') return null;
 		const parsed = parseFloat(value);
-		return isNaN(parsed) ? null : parsed;
+		if (isNaN(parsed)) {
+			return null;
+		}
+		return parsed;
 	}
 
 	async getMarketData() {

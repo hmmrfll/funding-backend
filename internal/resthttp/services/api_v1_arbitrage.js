@@ -36,17 +36,30 @@ class ArbitrageRestService {
 
 	async getArbitrageOpportunities(req, res) {
 		try {
-			const { limit = 10, min_profit = 0.0001 } = req.query;
+			const { limit = 10, offset = 0, min_profit = 0.0001 } = req.query;
+
+			const limitNum = parseInt(limit);
+			const offsetNum = parseInt(offset);
 
 			const data = await this.arbitrageService.getFundingRatesComparison();
-			const opportunities = data.opportunities
-				.filter(opp => opp.absRateDifference >= parseFloat(min_profit))
-				.slice(0, parseInt(limit));
+			const allOpportunities = data.opportunities
+				.filter((opp) => opp.absRateDifference >= parseFloat(min_profit))
+				.sort((a, b) => b.absRateDifference - a.absRateDifference);
+
+			const totalCount = allOpportunities.length;
+			const opportunities = allOpportunities.slice(offsetNum, offsetNum + limitNum);
+			const hasMore = offsetNum + limitNum < totalCount;
 
 			res.json({
 				opportunities,
-				count: opportunities.length,
-				timestamp: data.timestamp
+				pagination: {
+					offset: offsetNum,
+					limit: limitNum,
+					total: totalCount,
+					hasMore,
+					nextOffset: hasMore ? offsetNum + limitNum : null,
+				},
+				timestamp: data.timestamp,
 			});
 		} catch (error) {
 			this.logger.error('Error in getArbitrageOpportunities REST:', error);
@@ -71,7 +84,7 @@ class ArbitrageRestService {
 		this.logger.error('Unexpected system error:', {
 			message: error.message,
 			stack: error.stack,
-			name: error.name
+			name: error.name,
 		});
 
 		res.status(500).json({
@@ -101,7 +114,7 @@ class ArbitrageRestService {
 				path: '/arbitrage/opportunities',
 				handler: this.getArbitrageOpportunities.bind(this),
 				middleware: auth,
-			}
+			},
 		];
 	}
 }

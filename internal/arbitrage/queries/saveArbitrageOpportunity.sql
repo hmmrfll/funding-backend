@@ -1,5 +1,5 @@
 INSERT INTO arbitrage_opportunities (
-	symbol, extended_rate, hyperliquid_rate,
-	profit_potential, risk_level, created_at
-) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+	symbol, extended_funding_rate, hyperliquid_funding_rate,
+	profit_potential, volume_24h, risk_level, created_at
+) VALUES ($1, $2, $3, $4, 0, $5, CURRENT_TIMESTAMP)
 RETURNING *

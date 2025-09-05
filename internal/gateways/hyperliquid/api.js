@@ -17,10 +17,7 @@ class HyperliquidAPI {
 
 	setupInterceptors() {
 		this.client.interceptors.request.use(
-			(config) => {
-				this.logger.debug(`Hyperliquid API Request: ${config.method.toUpperCase()} ${config.url}`);
-				return config;
-			},
+			(config) => config,
 			(error) => {
 				this.logger.error('Hyperliquid API Request Error:', error);
 				return Promise.reject(error);
@@ -28,10 +25,7 @@ class HyperliquidAPI {
 		);
 
 		this.client.interceptors.response.use(
-			(response) => {
-				this.logger.debug(`Hyperliquid API Response: ${response.status} for ${response.config.url}`);
-				return response;
-			},
+			(response) => response,
 			(error) => {
 				this.logger.error('Hyperliquid API Response Error:', error.response?.data || error.message);
 				return Promise.reject(error);

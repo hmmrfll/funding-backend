@@ -8,7 +8,7 @@ class ArbitrageService {
 		this.extendedAPI = new ExtendedAPI(logger);
 		this.hyperliquidAPI = new HyperliquidAPI(logger);
 
-		this.supportedPairs = ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'DOGE', 'ADA', 'DOT', 'UNI', 'LINK'];
+		this.supportedPairs = null;
 	}
 
 	async getFundingRatesComparison() {
@@ -44,6 +44,10 @@ class ArbitrageService {
 
 			const opportunities = this.findArbitrageOpportunities(comparison);
 
+			if (opportunities.length > 0) {
+				await this.saveArbitrageOpportunities(opportunities);
+			}
+
 			return {
 				comparison,
 				opportunities,
@@ -73,7 +77,9 @@ class ArbitrageService {
 			}
 		});
 
-		this.supportedPairs.forEach((symbol) => {
+		const allSymbols = new Set([...extendedMap.keys(), ...hyperliquidMap.keys()]);
+
+		allSymbols.forEach((symbol) => {
 			const extendedRate = extendedMap.get(symbol);
 			const hyperliquidRate = hyperliquidMap.get(symbol);
 
@@ -114,13 +120,13 @@ class ArbitrageService {
 			const rateDiff = extendedRate - hyperliquidRate;
 			const absRateDiff = Math.abs(rateDiff);
 
-			const minThreshold = 0.0001;
+			const minThreshold = 0.00001;
 
 			if (absRateDiff > minThreshold) {
 				const strategy = rateDiff > 0 ? 'SHORT Extended, LONG Hyperliquid' : 'LONG Extended, SHORT Hyperliquid';
 
-				const hourlyProfit = absRateDiff;
-				const dailyProfit = hourlyProfit * 3;
+				const hourlyProfit = absRateDiff / 8;
+				const dailyProfit = hourlyProfit * 24;
 				const annualizedProfit = dailyProfit * 365;
 
 				opportunities.push({
@@ -147,8 +153,8 @@ class ArbitrageService {
 	}
 
 	calculateRiskLevel(rateDifference) {
-		if (rateDifference > 0.005) return 'high'; // > 0.5%
-		if (rateDifference > 0.001) return 'medium'; // > 0.1%
+		if (rateDifference > 0.005) return 'high';
+		if (rateDifference > 0.001) return 'medium';
 		return 'low';
 	}
 
@@ -162,6 +168,18 @@ class ArbitrageService {
 		}
 	}
 
+	async saveArbitrageOpportunities(opportunities) {
+		if (!opportunities || opportunities.length === 0) return;
+
+		try {
+			for (const opportunity of opportunities) {
+				await this.storage.saveArbitrageOpportunity(opportunity);
+			}
+		} catch (error) {
+			this.logger.error(`Error saving arbitrage opportunities:`, error);
+		}
+	}
+
 	async getPairDetails(symbol) {
 		try {
 			const comparison = await this.getFundingRatesComparison();
@@ -172,7 +190,6 @@ class ArbitrageService {
 			}
 
 			const history = await this.getPairHistory(symbol);
-
 			const stats = this.calculatePairStats(history);
 
 			return {
@@ -187,16 +204,6 @@ class ArbitrageService {
 		}
 	}
 
-	async getPairHistory(symbol, days = 7) {
-		const startTime = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-		try {
-			return await this.storage.getFundingRateHistory(symbol, startTime);
-		} catch (error) {
-			this.logger.error(`Error getting pair history for ${symbol}:`, error);
-			return [];
-		}
-	}
 
 	calculatePairStats(history) {
 		if (!history || history.length === 0) {

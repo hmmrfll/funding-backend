@@ -16,6 +16,10 @@ const ArbitrageStorage = require('../internal/arbitrage/storage');
 const ArbitrageService = require('../internal/arbitrage/service');
 const ArbitrageRestService = require('../internal/resthttp/services/api_v1_arbitrage');
 
+const DashboardStorage = require('../internal/dashboard/storage');
+const DashboardService = require('../internal/dashboard/service');
+const DashboardRestService = require('../internal/resthttp/services/api_v1_dashboard');
+
 const DataScheduler = require('./scheduler');
 
 const AuthMiddleware = require('../internal/shared/middleware/auth');
@@ -40,6 +44,10 @@ async function startApplication() {
 		const arbitrageStorage = new ArbitrageStorage(db, logger);
 		const arbitrageService = new ArbitrageService(arbitrageStorage, logger);
 		const arbitrageRestService = new ArbitrageRestService(arbitrageService, authMiddleware, logger);
+
+		const dashboardStorage = new DashboardStorage(db, logger);
+		const dashboardService = new DashboardService(dashboardStorage, logger);
+		const dashboardRestService = new DashboardRestService(dashboardService, authMiddleware, logger);
 
 		const telegramService = new TelegramService(config.telegram, db, logger);
 		await telegramService.init();
@@ -83,6 +91,7 @@ async function startApplication() {
 			...userRestService.getRoutes(),
 			...authRestService.getRoutes(),
 			...arbitrageRestService.getRoutes(),
+			...dashboardRestService.getRoutes(),
 		];
 
 		allRoutes.forEach((route) => {

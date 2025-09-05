@@ -28,9 +28,10 @@ CREATE TABLE IF NOT EXISTS funding_rates (
     exchange VARCHAR(50) NOT NULL CHECK (exchange IN ('extended', 'hyperliquid')),
     symbol VARCHAR(50) NOT NULL,
     rate DECIMAL(10, 6) NOT NULL,
+    volume_24h DECIMAL(15, 2) DEFAULT 0,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  -- Добавить эту строку
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Индексы для таблицы funding_rates
@@ -44,9 +45,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_funding_rates_unique ON funding_rates(exch
 CREATE TABLE IF NOT EXISTS arbitrage_opportunities (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(50) NOT NULL,
-    extended_rate DECIMAL(10, 6) NOT NULL,
-    hyperliquid_rate DECIMAL(10, 6) NOT NULL,
+    extended_funding_rate DECIMAL(10, 6) NOT NULL,
+    hyperliquid_funding_rate DECIMAL(10, 6) NOT NULL,
     profit_potential DECIMAL(10, 4) NOT NULL,
+    volume_24h DECIMAL(15, 2) DEFAULT 0,
     risk_level VARCHAR(20) CHECK (risk_level IN ('low', 'medium', 'high')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -112,3 +114,5 @@ CREATE TABLE IF NOT EXISTS web_auth_sessions (
 CREATE INDEX IF NOT EXISTS idx_web_auth_sessions_telegram_user_id ON web_auth_sessions(telegram_user_id);
 CREATE INDEX IF NOT EXISTS idx_web_auth_sessions_expires_at ON web_auth_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_web_auth_sessions_used ON web_auth_sessions(used) WHERE used = false;
+
+-- Таблицы остаются пустыми - данные будут добавляться через API

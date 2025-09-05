@@ -101,13 +101,7 @@ class DatabaseManager {
 	}
 
 	async validateRequiredTables(client) {
-		const requiredTables = [
-			'users',
-			'funding_rates',
-			'arbitrage_opportunities',
-			'user_alerts',
-			'notifications',
-		];
+		const requiredTables = ['users', 'funding_rates', 'arbitrage_opportunities', 'user_alerts', 'notifications'];
 
 		for (const table of requiredTables) {
 			const checkQuery = `
@@ -231,6 +225,21 @@ class DatabaseManager {
 			database: this.config.database,
 			...this.config.pool,
 		});
+	}
+
+	async query(text, params = []) {
+		const client = this.getClient();
+		try {
+			await client.connect();
+			const result = await client.query(text, params);
+			return result;
+		} finally {
+			await client.end();
+		}
+	}
+
+	async close() {
+		// Метод для совместимости, если используется пул соединений
 	}
 }
 
