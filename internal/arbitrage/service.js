@@ -180,6 +180,18 @@ class ArbitrageService {
 		}
 	}
 
+	async getPairHistory(symbol, hours = 24) {
+		try {
+			const endTime = new Date();
+			const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
+
+			return await this.storage.getFundingRateHistory(symbol, startTime, endTime);
+		} catch (error) {
+			this.logger.error(`Error getting pair history for ${symbol}:`, error);
+			throw error;
+		}
+	}
+
 	async getPairDetails(symbol) {
 		try {
 			const comparison = await this.getFundingRatesComparison();
@@ -203,7 +215,6 @@ class ArbitrageService {
 			throw error;
 		}
 	}
-
 
 	calculatePairStats(history) {
 		if (!history || history.length === 0) {

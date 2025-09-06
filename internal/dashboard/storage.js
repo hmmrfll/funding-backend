@@ -71,7 +71,6 @@ class DashboardStorage {
 
 			this.logger.info(`Market overview (${timeframe}): ${result.rows.length} rows returned`);
 
-			// Проверяем на наличие null/undefined значений
 			if (result.rows.length > 0) {
 				const nullValues = result.rows.filter(
 					(row) => row.timestamp === null || row.total_volume === null || row.active_opportunities === null,

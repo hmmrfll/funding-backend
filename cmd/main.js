@@ -20,6 +20,10 @@ const DashboardStorage = require('../internal/dashboard/storage');
 const DashboardService = require('../internal/dashboard/service');
 const DashboardRestService = require('../internal/resthttp/services/api_v1_dashboard');
 
+const NotificationStorage = require('../internal/notifications/storage');
+const NotificationService = require('../internal/notifications/service');
+const NotificationRestService = require('../internal/resthttp/services/api_v1_notifications');
+
 const DataScheduler = require('./scheduler');
 
 const AuthMiddleware = require('../internal/shared/middleware/auth');
@@ -49,10 +53,14 @@ async function startApplication() {
 		const dashboardService = new DashboardService(dashboardStorage, logger);
 		const dashboardRestService = new DashboardRestService(dashboardService, authMiddleware, logger);
 
+		const notificationStorage = new NotificationStorage(db, logger);
+		const notificationService = new NotificationService(notificationStorage, logger);
+		const notificationRestService = new NotificationRestService(notificationService, authMiddleware, logger);
+
 		const telegramService = new TelegramService(config.telegram, db, logger);
 		await telegramService.init();
 
-		const scheduler = new DataScheduler(arbitrageService, logger);
+		const scheduler = new DataScheduler(arbitrageService, notificationService, telegramService, userStorage, logger);
 		scheduler.start();
 
 		const app = express();
@@ -92,6 +100,7 @@ async function startApplication() {
 			...authRestService.getRoutes(),
 			...arbitrageRestService.getRoutes(),
 			...dashboardRestService.getRoutes(),
+			...notificationRestService.getRoutes(),
 		];
 
 		allRoutes.forEach((route) => {

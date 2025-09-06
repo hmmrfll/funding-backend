@@ -116,3 +116,48 @@ CREATE INDEX IF NOT EXISTS idx_web_auth_sessions_expires_at ON web_auth_sessions
 CREATE INDEX IF NOT EXISTS idx_web_auth_sessions_used ON web_auth_sessions(used) WHERE used = false;
 
 -- Таблицы остаются пустыми - данные будут добавляться через API
+
+-- Добавить в конец файла migrations/init.sql
+
+-- Таблица пользовательских уведомлений
+CREATE TABLE IF NOT EXISTS user_notification_rules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('global', 'pair')),
+    symbol VARCHAR(50), -- NULL для global правил
+    threshold DECIMAL(10, 6) NOT NULL,
+    enabled BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Ограничения
+    CONSTRAINT check_pair_has_symbol CHECK (
+        (type = 'global' AND symbol IS NULL) OR
+        (type = 'pair' AND symbol IS NOT NULL)
+    )
+);
+
+-- Индексы для таблицы user_notification_rules
+CREATE INDEX IF NOT EXISTS idx_user_notification_rules_user_id ON user_notification_rules(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_notification_rules_enabled ON user_notification_rules(enabled) WHERE enabled = true;
+CREATE INDEX IF NOT EXISTS idx_user_notification_rules_type ON user_notification_rules(type);
+CREATE INDEX IF NOT EXISTS idx_user_notification_rules_symbol ON user_notification_rules(symbol) WHERE symbol IS NOT NULL;
+
+-- Таблица для логирования отправленных уведомлений (чтобы не спамить)
+CREATE TABLE IF NOT EXISTS sent_notifications_log (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rule_id UUID NOT NULL REFERENCES user_notification_rules(id) ON DELETE CASCADE,
+    symbol VARCHAR(50) NOT NULL,
+    profit_threshold DECIMAL(10, 6) NOT NULL,
+    actual_profit DECIMAL(10, 6) NOT NULL,
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Уникальность по пользователю, правилу и символу
+    UNIQUE(user_id, rule_id, symbol)
+);
+
+-- Индексы для таблицы sent_notifications_log
+CREATE INDEX IF NOT EXISTS idx_sent_notifications_log_user_id ON sent_notifications_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_sent_notifications_log_sent_at ON sent_notifications_log(sent_at);
+CREATE INDEX IF NOT EXISTS idx_sent_notifications_log_rule_id ON sent_notifications_log(rule_id);

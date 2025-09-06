@@ -1,8 +1,11 @@
 const cron = require('node-cron');
 
 class DataScheduler {
-	constructor(arbitrageService, logger) {
+	constructor(arbitrageService, notificationService, telegramService, userStorage, logger) {
 		this.arbitrageService = arbitrageService;
+		this.notificationService = notificationService;
+		this.telegramService = telegramService;
+		this.userStorage = userStorage;
 		this.logger = logger;
 		this.isRunning = false;
 	}
@@ -22,14 +25,20 @@ class DataScheduler {
 						result.opportunities.length
 					} opportunities`,
 				);
+
+				await this.notificationService.checkAndSendNotifications(
+					result.opportunities,
+					this.telegramService,
+					this.userStorage,
+				);
 			} catch (error) {
-				this.logger.error('Error in scheduled funding rates update:', error);
+				this.logger.error('Error in scheduled update:', error);
 			} finally {
 				this.isRunning = false;
 			}
 		});
 
-		this.logger.info('Data scheduler started - funding rates will update every 30 seconds');
+		this.logger.info('Data scheduler started - funding rates and notifications will update every 30 seconds');
 	}
 }
 
