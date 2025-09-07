@@ -6,8 +6,8 @@
 
 ## 🔗 Связанные репозитории
 
-- **Frontend (Telegram Mini App)**: [funding-arbitrage-frontend](https://github.com/your-username/funding-arbitrage-frontend)
-- **Backend (API Server)**: [funding-arbitrage-backend](https://github.com/your-username/funding-arbitrage-backend) *(текущий репозиторий)*
+- **Frontend (Telegram Mini App)**: [funding-frontend](https://github.com/hmmrfll/funding-frontend)
+- **Backend (API Server)**: [funding-backend](https://github.com/hmmrfll/funding-backend) *(текущий репозиторий)*
 
 ## 🛠️ Технологический стек
 
