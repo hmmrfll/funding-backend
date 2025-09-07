@@ -95,25 +95,6 @@ CREATE INDEX IF NOT EXISTS idx_notifications_sent_at ON notifications(sent_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id_sent_at ON notifications(user_id, sent_at DESC);
 
--- Таблица временных сессий для web авторизации
-CREATE TABLE IF NOT EXISTS web_auth_sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    telegram_user_id BIGINT NOT NULL,
-    jwt_token TEXT NOT NULL,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    used BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-
-    -- Сессия не может быть использована после истечения
-    CONSTRAINT check_not_used_after_expiry CHECK (
-        NOT used OR (used AND CURRENT_TIMESTAMP <= expires_at)
-    )
-);
-
--- Индексы для таблицы web_auth_sessions
-CREATE INDEX IF NOT EXISTS idx_web_auth_sessions_telegram_user_id ON web_auth_sessions(telegram_user_id);
-CREATE INDEX IF NOT EXISTS idx_web_auth_sessions_expires_at ON web_auth_sessions(expires_at);
-CREATE INDEX IF NOT EXISTS idx_web_auth_sessions_used ON web_auth_sessions(used) WHERE used = false;
 
 -- Таблицы остаются пустыми - данные будут добавляться через API
 

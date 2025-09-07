@@ -75,10 +75,8 @@ class NotificationService {
 			const activeRules = await this.notificationStorage.getActiveNotificationRules();
 
 			if (activeRules.length === 0) {
-				return;
+				return [];
 			}
-
-			this.logger.info(`Checking ${activeRules.length} active notification rules`);
 
 			const notificationsSent = [];
 
@@ -100,17 +98,22 @@ class NotificationService {
 						}
 					}
 				} catch (error) {
-					this.logger.error(`Error processing rule ${rule.id}:`, error);
+					this.logger.error(`❌ Error processing rule ${rule.id}:`, error);
 				}
 			}
 
 			if (notificationsSent.length > 0) {
-				this.logger.info(`Sent ${notificationsSent.length} notifications`);
+				this.logger.info(
+					`📨 Sent ${notificationsSent.length} notifications: ${notificationsSent
+						.map((n) => `${n.symbol}: ${(n.profit * 100).toFixed(4)}%`)
+						.join(', ')}`,
+				);
 			}
 
 			return notificationsSent;
 		} catch (error) {
-			this.logger.error('Error in checkAndSendNotifications:', error);
+			this.logger.error('❌ Error in checkAndSendNotifications:', error);
+			return [];
 		}
 	}
 
@@ -142,7 +145,7 @@ class NotificationService {
 		try {
 			const user = await userStorage.getUserById(rule.userId);
 			if (!user) {
-				this.logger.warn(`User not found for notification: ${rule.userId}`);
+				this.logger.warn(`⚠️ User not found for notification: ${rule.userId}`);
 				return;
 			}
 
@@ -159,10 +162,8 @@ class NotificationService {
 				rule.threshold,
 				opportunity.absRateDifference,
 			);
-
-			this.logger.info(`Notification sent to user ${rule.userId} for ${opportunity.symbol}`);
 		} catch (error) {
-			this.logger.error('Error sending notification:', error);
+			this.logger.error(`❌ Error sending notification to user ${rule.userId} for ${opportunity.symbol}:`, error);
 		}
 	}
 

@@ -1,15 +1,18 @@
 const { AppError } = require('../../user/error');
 
 class NotificationRestService {
-	constructor(notificationService, authMiddleware, logger) {
+	constructor(notificationService, authMiddleware, userStorage, telegramService, config, logger) {
 		this.notificationService = notificationService;
 		this.authMiddleware = authMiddleware;
+		this.userStorage = userStorage;
+		this.telegramService = telegramService;
+		this.config = config;
 		this.logger = logger;
 	}
 
 	async createNotificationRule(req, res) {
 		try {
-			const userId = req.telegramUser?.userId || req.jwtUser?.userId;
+			const userId = req.telegramUser?.userId;
 			if (!userId) {
 				throw new AppError('User ID required', 'USER_ID_REQUIRED', 401);
 			}
@@ -33,7 +36,7 @@ class NotificationRestService {
 
 	async getUserNotificationRules(req, res) {
 		try {
-			const userId = req.telegramUser?.userId || req.jwtUser?.userId;
+			const userId = req.telegramUser?.userId;
 			if (!userId) {
 				throw new AppError('User ID required', 'USER_ID_REQUIRED', 401);
 			}
@@ -49,7 +52,7 @@ class NotificationRestService {
 
 	async updateNotificationRule(req, res) {
 		try {
-			const userId = req.telegramUser?.userId || req.jwtUser?.userId;
+			const userId = req.telegramUser?.userId;
 			if (!userId) {
 				throw new AppError('User ID required', 'USER_ID_REQUIRED', 401);
 			}
@@ -72,7 +75,7 @@ class NotificationRestService {
 
 	async deleteNotificationRule(req, res) {
 		try {
-			const userId = req.telegramUser?.userId || req.jwtUser?.userId;
+			const userId = req.telegramUser?.userId;
 			if (!userId) {
 				throw new AppError('User ID required', 'USER_ID_REQUIRED', 401);
 			}
@@ -84,6 +87,27 @@ class NotificationRestService {
 			res.json(result);
 		} catch (error) {
 			this.logger.error('Error in deleteNotificationRule REST:', error);
+			this.handleError(res, error);
+		}
+	}
+
+	async sendTestNotification(req, res) {
+		try {
+			const userId = req.telegramUser?.userId;
+			if (!userId) {
+				throw new AppError('User ID required', 'USER_ID_REQUIRED', 401);
+			}
+
+			const user = await this.userStorage.getUserById(userId);
+			if (!user) {
+				throw new AppError('User not found', 'USER_NOT_FOUND', 404);
+			}
+
+			await this.telegramService.sendTestNotification(user.telegramId);
+
+			res.json({ success: true, message: 'Test notification sent successfully' });
+		} catch (error) {
+			this.logger.error('Error in sendTestNotification REST:', error);
 			this.handleError(res, error);
 		}
 	}
@@ -130,6 +154,12 @@ class NotificationRestService {
 				method: 'DELETE',
 				path: '/notifications/rules/:ruleId',
 				handler: this.deleteNotificationRule.bind(this),
+				middleware: auth,
+			},
+			{
+				method: 'POST',
+				path: '/notifications/test',
+				handler: this.sendTestNotification.bind(this),
 				middleware: auth,
 			},
 		];

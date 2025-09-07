@@ -20,11 +20,14 @@ class DataScheduler {
 				this.isRunning = true;
 				const result = await this.arbitrageService.getFundingRatesComparison();
 
-				this.logger.info(
-					`Scheduled update: ${Object.keys(result.comparison).length} pairs, ${
-						result.opportunities.length
-					} opportunities`,
-				);
+				if (result.opportunities.length > 0) {
+					this.logger.info(
+						`📈 Found ${result.opportunities.length} arbitrage opportunities: ${result.opportunities
+							.slice(0, 3)
+							.map((opp) => `${opp.symbol}: ${(opp.absRateDifference * 100).toFixed(4)}%`)
+							.join(', ')}`,
+					);
+				}
 
 				await this.notificationService.checkAndSendNotifications(
 					result.opportunities,
@@ -32,13 +35,13 @@ class DataScheduler {
 					this.userStorage,
 				);
 			} catch (error) {
-				this.logger.error('Error in scheduled update:', error);
+				this.logger.error('❌ Error in scheduled update:', error);
 			} finally {
 				this.isRunning = false;
 			}
 		});
 
-		this.logger.info('Data scheduler started - funding rates and notifications will update every 30 seconds');
+		this.logger.info('🚀 Data scheduler started - funding rates and notifications will update every 30 seconds');
 	}
 }
 

@@ -71,6 +71,42 @@ class TelegramService {
 		}
 	}
 
+	async sendTestNotification(telegramId) {
+		if (!this.bot) {
+			this.logger.error('Telegram bot not initialized');
+			throw new Error('Telegram bot not initialized');
+		}
+
+		try {
+			const data = {
+				miniAppUrl: this.config.miniAppUrl || 'https://t.me/your_bot',
+			};
+
+			const message = this.templateEngine.render('test_notification', data);
+
+			await this.bot.sendMessage(telegramId, message, {
+				parse_mode: 'Markdown',
+				reply_markup: {
+					inline_keyboard: [
+						[
+							{
+								text: 'Open App',
+								web_app: {
+									url: this.config.miniAppUrl || 'https://t.me/your_bot',
+								},
+							},
+						],
+					],
+				},
+			});
+
+			this.logger.info(`Test notification sent to ${telegramId}`);
+		} catch (error) {
+			this.logger.error(`Failed to send test notification to ${telegramId}`, error);
+			throw error;
+		}
+	}
+
 	processUpdate(update) {
 		if (this.bot) {
 			this.bot.processUpdate(update);

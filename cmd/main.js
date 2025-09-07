@@ -10,7 +10,6 @@ const DatabaseManager = require('./db');
 const UserStorage = require('../internal/user/storage');
 const UserService = require('../internal/user/service');
 const UserRestService = require('../internal/resthttp/services/api_v1_user');
-const AuthRestService = require('../internal/resthttp/services/api_v1_auth');
 
 const ArbitrageStorage = require('../internal/arbitrage/storage');
 const ArbitrageService = require('../internal/arbitrage/service');
@@ -43,11 +42,13 @@ async function startApplication() {
 		const userStorage = new UserStorage(db, logger);
 		const userService = new UserService(userStorage, logger);
 		const userRestService = new UserRestService(userService, authMiddleware, logger);
-		const authRestService = new AuthRestService(db, logger);
 
 		const arbitrageStorage = new ArbitrageStorage(db, logger);
 		const arbitrageService = new ArbitrageService(arbitrageStorage, logger);
 		const arbitrageRestService = new ArbitrageRestService(arbitrageService, authMiddleware, logger);
+
+		const telegramService = new TelegramService(config.telegram, db, logger);
+		await telegramService.init();
 
 		const dashboardStorage = new DashboardStorage(db, logger);
 		const dashboardService = new DashboardService(dashboardStorage, logger);
@@ -55,10 +56,14 @@ async function startApplication() {
 
 		const notificationStorage = new NotificationStorage(db, logger);
 		const notificationService = new NotificationService(notificationStorage, logger);
-		const notificationRestService = new NotificationRestService(notificationService, authMiddleware, logger);
-
-		const telegramService = new TelegramService(config.telegram, db, logger);
-		await telegramService.init();
+		const notificationRestService = new NotificationRestService(
+			notificationService,
+			authMiddleware,
+			userStorage,
+			telegramService,
+			config,
+			logger,
+		);
 
 		const scheduler = new DataScheduler(arbitrageService, notificationService, telegramService, userStorage, logger);
 		scheduler.start();
@@ -97,7 +102,6 @@ async function startApplication() {
 
 		const allRoutes = [
 			...userRestService.getRoutes(),
-			...authRestService.getRoutes(),
 			...arbitrageRestService.getRoutes(),
 			...dashboardRestService.getRoutes(),
 			...notificationRestService.getRoutes(),

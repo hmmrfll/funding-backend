@@ -121,10 +121,11 @@ class NotificationStorage {
 			await client.connect();
 
 			const result = await client.query(this.queries.getActiveRules);
+			const rules = result.rows.map((row) => NotificationRule.fromDatabase(row));
 
-			return result.rows.map((row) => NotificationRule.fromDatabase(row));
+			return rules;
 		} catch (error) {
-			this.logger.error('Error getting active notification rules:', error);
+			this.logger.error('❌ Error getting active notification rules:', error);
 			throw DatabaseErrors.queryFailed(error);
 		} finally {
 			await client.end();
@@ -147,7 +148,7 @@ class NotificationStorage {
 
 			return result.rows.length > 0;
 		} catch (error) {
-			this.logger.error('Error logging sent notification:', error);
+			this.logger.error('❌ Error logging sent notification:', error);
 			throw DatabaseErrors.queryFailed(error);
 		} finally {
 			await client.end();
@@ -164,7 +165,7 @@ class NotificationStorage {
 
 			return result.rows.length > 0;
 		} catch (error) {
-			this.logger.error('Error checking recent notification:', error);
+			this.logger.error('❌ Error checking recent notification:', error);
 			throw DatabaseErrors.queryFailed(error);
 		} finally {
 			await client.end();
