@@ -45,7 +45,7 @@
 ```bash
 # Установите ngrok: https://ngrok.com/
 # Запустите туннель для backend
-ngrok http 3000
+ngrok http 3001
 
 # Скопируйте HTTPS URL (например: https://abc123.ngrok.io)
 ```
@@ -54,7 +54,7 @@ ngrok http 3000
 ```bash
 # Установите cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/
 # Запустите туннель
-cloudflared tunnel --url http://localhost:3000
+cloudflared tunnel --url http://localhost:3001
 
 # Скопируйте HTTPS URL из вывода команды
 ```
@@ -63,8 +63,8 @@ cloudflared tunnel --url http://localhost:3000
 
 1. **Клонируйте репозиторий**
 ```bash
-git clone https://github.com/your-username/funding-arbitrage-backend.git
-cd funding-arbitrage-backend
+git clone https://github.com/hmmrfll/funding-backend.git
+cd funding-backend
 ```
 
 2. **Настройте переменные окружения**
@@ -90,7 +90,7 @@ PG_PORT=5432
 PG_CONTAINER_NAME=psql-funding
 
 # Backend
-BACKEND_PORT=3000
+BACKEND_PORT=3001
 BACKEND_HOST=0.0.0.0
 BACKEND_CONTAINER_NAME=api-funding
 ```
