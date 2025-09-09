@@ -50,7 +50,6 @@ class DashboardService {
 					maxProfitPotential: parseFloat(row.max_profit_potential) || 0,
 				};
 
-				// Логируем проблемные строки
 				if (
 					isNaN(processedRow.totalVolume) ||
 					isNaN(processedRow.activeOpportunities) ||
@@ -68,7 +67,6 @@ class DashboardService {
 
 			this.logger.info(`Market overview processed: ${result.length} data points for ${timeframe}`);
 
-			// Проверяем на пустые или подозрительные данные
 			if (result.length === 0) {
 				this.logger.warn(`No data points returned for timeframe: ${timeframe}`);
 			}
@@ -85,12 +83,10 @@ class DashboardService {
 		}
 	}
 
-	// Метод для диагностики данных market overview
 	async diagnoseMarketOverviewData(timeframe) {
 		try {
 			const diagnosis = await this.dashboardStorage.diagnoseMarketOverviewData(timeframe);
 
-			// Анализируем результаты диагностики
 			const analysis = {
 				timeframe: timeframe,
 				timestamp: new Date().toISOString(),
@@ -98,7 +94,6 @@ class DashboardService {
 				recommendations: [],
 			};
 
-			// Проверяем наличие данных в arbitrage_opportunities
 			if (diagnosis.opportunities.total_opportunities === 0) {
 				analysis.issues.push('No arbitrage opportunities found in database');
 				analysis.recommendations.push('Check if arbitrage data collection is working');
@@ -107,7 +102,6 @@ class DashboardService {
 				analysis.recommendations.push('Check arbitrage data collection frequency');
 			}
 
-			// Проверяем данные funding_rates
 			if (diagnosis.fundingRates.total_rates === 0) {
 				analysis.issues.push('No funding rates found in database');
 				analysis.recommendations.push('Check if funding rates collection is working');
@@ -116,13 +110,11 @@ class DashboardService {
 				analysis.recommendations.push('Check funding rates collection frequency');
 			}
 
-			// Проверяем временные интервалы
 			if (diagnosis.timeIntervals.time_intervals_count === 0) {
 				analysis.issues.push('No time intervals generated for timeframe');
 				analysis.recommendations.push('Check timeframe parameter validation');
 			}
 
-			// Проверяем данные по периодам
 			if (diagnosis.opportunitiesByTime.periods_with_data === 0) {
 				analysis.issues.push('No data found for any time periods');
 				analysis.recommendations.push('Check if arbitrage opportunities exist for the requested timeframe');

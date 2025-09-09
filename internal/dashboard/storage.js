@@ -96,164 +96,17 @@ class DashboardStorage {
 		}
 	}
 
-	// Дополнительный метод для диагностики данных
 	async diagnoseMarketOverviewData(timeframe) {
 		const client = this.db.getClient();
 
 		try {
 			await client.connect();
 
-			// 1. Проверяем данные в arbitrage_opportunities
-			const opportunitiesStats = await client.query(`
-				SELECT
-					COUNT(*) as total_opportunities,
-					COUNT(CASE WHEN created_at >= NOW() - INTERVAL '1 hour' THEN 1 END) as last_hour,
-					COUNT(CASE WHEN created_at >= NOW() - INTERVAL '4 hours' THEN 1 END) as last_4_hours,
-					COUNT(CASE WHEN created_at >= NOW() - INTERVAL '24 hours' THEN 1 END) as last_24_hours,
-					COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as last_7_days,
-					MIN(created_at) as oldest,
-					MAX(created_at) as newest,
-					AVG(profit_potential) as avg_profit,
-					MAX(profit_potential) as max_profit,
-					MIN(profit_potential) as min_profit
-				FROM arbitrage_opportunities
-			`);
-
-			// 2. Проверяем данные в funding_rates
-			const fundingRatesStats = await client.query(`
-				SELECT
-					COUNT(*) as total_rates,
-					COUNT(DISTINCT symbol) as unique_symbols,
-					COUNT(DISTINCT exchange) as unique_exchanges,
-					COUNT(CASE WHEN created_at >= NOW() - INTERVAL '2 hours' THEN 1 END) as recent_rates,
-					MIN(created_at) as oldest_rate,
-					MAX(created_at) as newest_rate
-				FROM funding_rates
-			`);
-
-			// 3. Проверяем промежуточные результаты запроса
-			const timeIntervalsCheck = await client.query(
-				`
-				WITH time_intervals AS (
-					SELECT
-						generate_series(
-							CASE
-								WHEN $1::text = '1h' THEN NOW() - INTERVAL '1 hour'
-								WHEN $1::text = '4h' THEN NOW() - INTERVAL '4 hours'
-								WHEN $1::text = '24h' THEN NOW() - INTERVAL '24 hours'
-								WHEN $1::text = '7d' THEN NOW() - INTERVAL '7 days'
-							END,
-							NOW(),
-							CASE
-								WHEN $1::text = '1h' THEN INTERVAL '5 minutes'
-								WHEN $1::text = '4h' THEN INTERVAL '30 minutes'
-								WHEN $1::text = '24h' THEN INTERVAL '2 hours'
-								WHEN $1::text = '7d' THEN INTERVAL '6 hours'
-							END
-						) as timestamp
-				)
-				SELECT COUNT(*) as time_intervals_count, MIN(timestamp) as first_interval, MAX(timestamp) as last_interval
-				FROM time_intervals
-			`,
-				[timeframe],
-			);
-
-			// 4. Проверяем opportunities_by_time
-			const opportunitiesByTimeCheck = await client.query(
-				`
-				SELECT
-					COUNT(*) as periods_with_data,
-					AVG(active_opportunities) as avg_opportunities,
-					AVG(avg_spread) as avg_spread,
-					MAX(max_profit_potential) as max_profit
-				FROM (
-					SELECT
-						DATE_TRUNC(
-							CASE
-								WHEN $1::text = '1h' THEN 'minute'
-								WHEN $1::text = '4h' THEN 'hour'
-								WHEN $1::text = '24h' THEN 'hour'
-								WHEN $1::text = '7d' THEN 'hour'
-							END,
-							created_at
-						) as period,
-						COUNT(*) as active_opportunities,
-						AVG(profit_potential) as avg_spread,
-						MAX(profit_potential) as max_profit_potential
-					FROM arbitrage_opportunities
-					WHERE created_at >= CASE
-						WHEN $1::text = '1h' THEN NOW() - INTERVAL '1 hour'
-						WHEN $1::text = '4h' THEN NOW() - INTERVAL '4 hours'
-						WHEN $1::text = '24h' THEN NOW() - INTERVAL '24 hours'
-						WHEN $1::text = '7d' THEN NOW() - INTERVAL '7 days'
-					END
-					GROUP BY period
-				) subq
-			`,
-				[timeframe],
-			);
-
-			// 5. Проверяем JOIN между time_intervals и opportunities_by_time
-			const joinCheck = await client.query(
-				`
-				WITH time_intervals AS (
-					SELECT
-						generate_series(
-							CASE
-								WHEN $1::text = '1h' THEN NOW() - INTERVAL '1 hour'
-								WHEN $1::text = '4h' THEN NOW() - INTERVAL '4 hours'
-								WHEN $1::text = '24h' THEN NOW() - INTERVAL '24 hours'
-								WHEN $1::text = '7d' THEN NOW() - INTERVAL '7 days'
-							END,
-							NOW(),
-							CASE
-								WHEN $1::text = '1h' THEN INTERVAL '5 minutes'
-								WHEN $1::text = '4h' THEN INTERVAL '30 minutes'
-								WHEN $1::text = '24h' THEN INTERVAL '2 hours'
-								WHEN $1::text = '7d' THEN INTERVAL '6 hours'
-							END
-						) as timestamp
-				),
-				opportunities_by_time AS (
-					SELECT
-						DATE_TRUNC(
-							CASE
-								WHEN $1::text = '1h' THEN 'minute'
-								WHEN $1::text = '4h' THEN 'hour'
-								WHEN $1::text = '24h' THEN 'hour'
-								WHEN $1::text = '7d' THEN 'hour'
-							END,
-							created_at
-						) as period,
-						COUNT(*) as active_opportunities,
-						AVG(profit_potential) as avg_spread,
-						MAX(profit_potential) as max_profit_potential
-					FROM arbitrage_opportunities
-					WHERE created_at >= CASE
-						WHEN $1::text = '1h' THEN NOW() - INTERVAL '1 hour'
-						WHEN $1::text = '4h' THEN NOW() - INTERVAL '4 hours'
-						WHEN $1::text = '24h' THEN NOW() - INTERVAL '24 hours'
-						WHEN $1::text = '7d' THEN NOW() - INTERVAL '7 days'
-					END
-					GROUP BY period
-				)
-				SELECT
-					COUNT(ti.timestamp) as total_intervals,
-					COUNT(obt.period) as matched_periods,
-					COUNT(ti.timestamp) - COUNT(obt.period) as unmatched_intervals
-				FROM time_intervals ti
-				LEFT JOIN opportunities_by_time obt ON DATE_TRUNC(
-					CASE
-						WHEN $1::text = '1h' THEN 'minute'
-						WHEN $1::text = '4h' THEN 'hour'
-						WHEN $1::text = '24h' THEN 'hour'
-						WHEN $1::text = '7d' THEN 'hour'
-					END,
-					ti.timestamp
-				) = obt.period
-			`,
-				[timeframe],
-			);
+			const opportunitiesStats = await client.query(this.queries.diagnoseOpportunitiesStats);
+			const fundingRatesStats = await client.query(this.queries.diagnoseFundingRatesStats);
+			const timeIntervalsCheck = await client.query(this.queries.diagnoseTimeIntervalsCheck, [timeframe]);
+			const opportunitiesByTimeCheck = await client.query(this.queries.diagnoseOpportunitiesByTimeCheck, [timeframe]);
+			const joinCheck = await client.query(this.queries.diagnoseJoinCheck, [timeframe]);
 
 			return {
 				opportunities: opportunitiesStats.rows[0],

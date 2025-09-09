@@ -25,7 +25,6 @@ class UserService {
         }
 
         try {
-            // Сначала ищем пользователя по telegram_id
             let user = await this.storage.getUserByTelegramId(telegramData.userId);
 
             if (user) {
@@ -33,11 +32,10 @@ class UserService {
                 return user.toJSON();
             }
 
-            // Если пользователь не найден, создаем нового
             this.logger.info(`Creating new user for telegram_id: ${telegramData.userId}`);
 
             const userData = {
-                id: telegramData.userId.toString(), // используем telegram_id как основной id
+                id: telegramData.userId.toString(),
                 telegramId: telegramData.userId,
                 name: this.buildUserName(telegramData),
                 avatarUrl: telegramData.photoUrl || null

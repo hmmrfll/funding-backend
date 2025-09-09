@@ -238,9 +238,7 @@ class DatabaseManager {
 		}
 	}
 
-	async close() {
-		// Метод для совместимости, если используется пул соединений
-	}
+	async close() {}
 }
 
 module.exports = DatabaseManager;

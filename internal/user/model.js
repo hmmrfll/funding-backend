@@ -15,7 +15,6 @@ class User {
     toJSON() {
         let avatarUrl = this.avatarUrl;
 
-        // Если URL относительный, делаем его абсолютным
         if (avatarUrl && avatarUrl.startsWith('/uploads/')) {
             avatarUrl = `${process.env.SERVER_URL || ''}${avatarUrl}`;
         }

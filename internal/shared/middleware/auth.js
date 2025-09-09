@@ -15,12 +15,11 @@ class AuthMiddleware {
 					return res.status(401).json({ error: 'Authorization header is missing' });
 				}
 
-				// Проверяем формат заголовка
 				if (!authHeader.startsWith('Bearer ')) {
 					return res.status(401).json({ error: 'Invalid authorization format' });
 				}
 
-				const initData = authHeader.substring(7); // Убираем 'Bearer ' (7 символов)
+				const initData = authHeader.substring(7);
 
 				if (!isValid(initData, this.config.telegram.botToken)) {
 					return res.status(401).json({ error: 'Invalid telegram authentication' });
