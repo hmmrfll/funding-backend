@@ -85,19 +85,7 @@ class TelegramService {
 			const message = this.templateEngine.render('test_notification', data);
 
 			await this.bot.sendMessage(telegramId, message, {
-				parse_mode: 'Markdown',
-				reply_markup: {
-					inline_keyboard: [
-						[
-							{
-								text: 'Open App',
-								web_app: {
-									url: this.config.miniAppUrl || 'https://t.me/your_bot',
-								},
-							},
-						],
-					],
-				},
+				parse_mode: 'Markdown'
 			});
 
 			this.logger.info(`Test notification sent to ${telegramId}`);
