@@ -30,14 +30,12 @@ class DashboardStorage {
 		return queries;
 	}
 
-	async getMarketSummary() {
+	async getMarketSummary(timeframe = '24h') {
 		const client = this.db.getClient();
 
 		try {
 			await client.connect();
-			const result = await client.query(this.queries.getMarketSummary);
-
-			this.logger.info(`Market summary: ${result.rows.length} rows returned`);
+			const result = await client.query(this.queries.getMarketSummary, [timeframe]);
 
 			if (!result.rows[0]) {
 				this.logger.warn('No market summary data found, returning defaults');
@@ -50,11 +48,10 @@ class DashboardStorage {
 			}
 
 			const data = result.rows[0];
-			this.logger.info(`Market summary: ${data.total_pairs} pairs, avg spread: ${data.avg_spread}`);
 
 			return data;
 		} catch (error) {
-			this.logger.error('Error fetching market summary:', error);
+			this.logger.error(`Error fetching market summary (${timeframe}):`, error);
 			throw new DatabaseQueryError('getMarketSummary', error);
 		} finally {
 			await client.end();
@@ -69,17 +66,7 @@ class DashboardStorage {
 
 			const result = await client.query(this.queries.getMarketOverview, [timeframe]);
 
-			this.logger.info(`Market overview (${timeframe}): ${result.rows.length} rows returned`);
-
-			if (result.rows.length > 0) {
-				const nullValues = result.rows.filter(
-					(row) => row.timestamp === null || row.total_volume === null || row.active_opportunities === null,
-				);
-
-				if (nullValues.length > 0) {
-					this.logger.warn(`Found ${nullValues.length} rows with null values in market overview data`);
-				}
-			} else {
+			if (result.rows.length === 0) {
 				this.logger.warn(`No data returned for market overview timeframe: ${timeframe}`);
 			}
 
@@ -91,6 +78,48 @@ class DashboardStorage {
 				timeframe: timeframe,
 			});
 			throw new DatabaseQueryError('getMarketOverview', error);
+		} finally {
+			await client.end();
+		}
+	}
+
+	async getActivityByTime(timeframe) {
+		const client = this.db.getClient();
+
+		try {
+			await client.connect();
+
+			const result = await client.query(this.queries.getActivityByTime, [timeframe]);
+
+			return result.rows || [];
+		} catch (error) {
+			this.logger.error(`Error fetching activity by time for ${timeframe}:`, {
+				message: error.message,
+				stack: error.stack,
+				timeframe: timeframe,
+			});
+			throw new DatabaseQueryError('getActivityByTime', error);
+		} finally {
+			await client.end();
+		}
+	}
+
+	async getProfitabilityByTime(timeframe) {
+		const client = this.db.getClient();
+
+		try {
+			await client.connect();
+
+			const result = await client.query(this.queries.getProfitabilityByTime, [timeframe]);
+
+			return result.rows || [];
+		} catch (error) {
+			this.logger.error(`Error fetching profitability by time for ${timeframe}:`, {
+				message: error.message,
+				stack: error.stack,
+				timeframe: timeframe,
+			});
+			throw new DatabaseQueryError('getProfitabilityByTime', error);
 		} finally {
 			await client.end();
 		}

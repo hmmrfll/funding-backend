@@ -13,9 +13,11 @@ class DashboardService {
 		}
 	}
 
-	async getMarketSummary() {
+	async getMarketSummary(timeframe = '24h') {
 		try {
-			const data = await this.dashboardStorage.getMarketSummary();
+			this.validateTimeframe(timeframe);
+
+			const data = await this.dashboardStorage.getMarketSummary(timeframe);
 
 			const result = {
 				totalVolume: parseFloat(data.total_volume) || 0,
@@ -24,13 +26,9 @@ class DashboardService {
 				topOpportunities: data.top_opportunities || [],
 			};
 
-			this.logger.info(
-				`Market summary processed: ${result.totalPairs} pairs, ${result.topOpportunities.length} opportunities`,
-			);
-
 			return result;
 		} catch (error) {
-			this.logger.error('Error in getMarketSummary:', error);
+			this.logger.error(`Error in getMarketSummary (${timeframe}):`, error);
 			throw new DataProcessingError('getMarketSummary', error);
 		}
 	}
@@ -65,8 +63,6 @@ class DashboardService {
 				return processedRow;
 			});
 
-			this.logger.info(`Market overview processed: ${result.length} data points for ${timeframe}`);
-
 			if (result.length === 0) {
 				this.logger.warn(`No data points returned for timeframe: ${timeframe}`);
 			}
@@ -80,6 +76,62 @@ class DashboardService {
 				errorType: error.constructor.name,
 			});
 			throw new DataProcessingError('getMarketOverview', error);
+		}
+	}
+
+	async getActivityByTime(timeframe) {
+		try {
+			this.validateTimeframe(timeframe);
+
+			const data = await this.dashboardStorage.getActivityByTime(timeframe);
+
+			const result = data.map((row) => ({
+				hour: parseInt(row.hour) || 0,
+				count: parseInt(row.count) || 0,
+			}));
+
+			if (result.length === 0) {
+				this.logger.warn(`No activity data returned for timeframe: ${timeframe}`);
+			}
+
+			return result;
+		} catch (error) {
+			this.logger.error(`Error in getActivityByTime (${timeframe}):`, {
+				message: error.message,
+				stack: error.stack,
+				timeframe: timeframe,
+				errorType: error.constructor.name,
+			});
+			throw new DataProcessingError('getActivityByTime', error);
+		}
+	}
+
+	async getProfitabilityByTime(timeframe) {
+		try {
+			this.validateTimeframe(timeframe);
+
+			const data = await this.dashboardStorage.getProfitabilityByTime(timeframe);
+
+			const result = data.map((row) => ({
+				hour: parseInt(row.hour) || 0,
+				maxProfit: parseFloat(row.max_profit) || 0,
+				avgProfit: parseFloat(row.avg_profit) || 0,
+				medianProfit: parseFloat(row.median_profit) || 0,
+			}));
+
+			if (result.length === 0) {
+				this.logger.warn(`No profitability data returned for timeframe: ${timeframe}`);
+			}
+
+			return result;
+		} catch (error) {
+			this.logger.error(`Error in getProfitabilityByTime (${timeframe}):`, {
+				message: error.message,
+				stack: error.stack,
+				timeframe: timeframe,
+				errorType: error.constructor.name,
+			});
+			throw new DataProcessingError('getProfitabilityByTime', error);
 		}
 	}
 

@@ -61,17 +61,25 @@ class ArbitrageStorage {
 		try {
 			await client.connect();
 
-			const result = await client.query(this.queries.saveArbitrageOpportunity, [
+			const params = [
 				opportunity.symbol,
 				opportunity.extendedRate,
 				opportunity.hyperliquidRate,
 				opportunity.absRateDifference,
 				opportunity.riskLevel,
-			]);
+				opportunity.volume24h || 1000000,
+			];
+
+			const result = await client.query(this.queries.saveArbitrageOpportunity, params);
 
 			return result.rows[0];
 		} catch (error) {
-			this.logger.error('Error saving arbitrage opportunity:', error);
+			this.logger.error('Error saving arbitrage opportunity:', {
+				message: error.message,
+				stack: error.stack,
+				symbol: opportunity.symbol,
+				volume24h: opportunity.volume24h,
+			});
 			throw DatabaseErrors.queryFailed(error);
 		} finally {
 			await client.end();

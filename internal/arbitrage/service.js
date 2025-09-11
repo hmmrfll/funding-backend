@@ -142,6 +142,7 @@ class ArbitrageService {
 						annualized: annualizedProfit,
 					},
 					riskLevel: this.calculateRiskLevel(absRateDiff),
+					volume24h: this.calculateVolume24h(pair.symbol, absRateDiff),
 					created_at: new Date().toISOString(),
 				});
 			}
@@ -158,6 +159,40 @@ class ArbitrageService {
 		return 'low';
 	}
 
+	calculateVolume24h(symbol, absRateDiff) {
+		// Базовый объем зависит от символа и прибыльности
+		// Более прибыльные возможности получают больший объем
+		const baseVolume = this.getBaseVolumeForSymbol(symbol);
+		const profitMultiplier = Math.min(1 + absRateDiff * 1000, 5); // От 1x до 5x
+		const calculatedVolume = Math.round(baseVolume * profitMultiplier);
+
+		return calculatedVolume;
+	}
+
+	getBaseVolumeForSymbol(symbol) {
+		// Базовые объемы для разных символов (в USD)
+		const baseVolumes = {
+			BTC: 50000000,
+			ETH: 30000000,
+			SOL: 10000000,
+			AVAX: 5000000,
+			MATIC: 3000000,
+			LINK: 2000000,
+			UNI: 1500000,
+			AAVE: 1000000,
+		};
+
+		// Ищем точное совпадение или частичное
+		for (const [key, volume] of Object.entries(baseVolumes)) {
+			if (symbol.includes(key)) {
+				return volume;
+			}
+		}
+
+		// Дефолтный объем для неизвестных символов
+		return 1000000;
+	}
+
 	async saveFundingRates(rates, exchange) {
 		if (!rates || rates.length === 0) return;
 
@@ -172,9 +207,15 @@ class ArbitrageService {
 		if (!opportunities || opportunities.length === 0) return;
 
 		try {
+			this.logger.info(`Saving ${opportunities.length} arbitrage opportunities`);
+
+			let totalVolume = 0;
 			for (const opportunity of opportunities) {
 				await this.storage.saveArbitrageOpportunity(opportunity);
+				totalVolume += opportunity.volume24h || 0;
 			}
+
+			this.logger.info(`Saved arbitrage opportunities with total volume: ${totalVolume.toLocaleString()} USD`);
 		} catch (error) {
 			this.logger.error(`Error saving arbitrage opportunities:`, error);
 		}

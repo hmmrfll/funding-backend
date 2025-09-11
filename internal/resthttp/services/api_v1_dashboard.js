@@ -9,10 +9,19 @@ class DashboardRestService {
 
 	async getMarketSummary(req, res) {
 		try {
-			const data = await this.dashboardService.getMarketSummary();
+			const { timeframe = '24h' } = req.query;
+
+			const data = await this.dashboardService.getMarketSummary(timeframe);
+
 			res.json(data);
 		} catch (error) {
-			this.logger.error('Error in getMarketSummary REST:', error);
+			this.logger.error('Error in getMarketSummary REST:', {
+				message: error.message,
+				stack: error.stack,
+				timeframe: req.query.timeframe,
+				errorType: error.constructor.name,
+				requestId: req.id || 'unknown',
+			});
 			this.handleError(res, error);
 		}
 	}
@@ -43,6 +52,44 @@ class DashboardRestService {
 			res.json(data);
 		} catch (error) {
 			this.logger.error('Error in getFundingComparison REST:', error);
+			this.handleError(res, error);
+		}
+	}
+
+	async getActivityByTime(req, res) {
+		try {
+			const { timeframe = '24h' } = req.query;
+
+			const data = await this.dashboardService.getActivityByTime(timeframe);
+
+			res.json(data);
+		} catch (error) {
+			this.logger.error('Error in getActivityByTime REST:', {
+				message: error.message,
+				stack: error.stack,
+				timeframe: req.query.timeframe,
+				errorType: error.constructor.name,
+				requestId: req.id || 'unknown',
+			});
+			this.handleError(res, error);
+		}
+	}
+
+	async getProfitabilityByTime(req, res) {
+		try {
+			const { timeframe = '24h' } = req.query;
+
+			const data = await this.dashboardService.getProfitabilityByTime(timeframe);
+
+			res.json(data);
+		} catch (error) {
+			this.logger.error('Error in getProfitabilityByTime REST:', {
+				message: error.message,
+				stack: error.stack,
+				timeframe: req.query.timeframe,
+				errorType: error.constructor.name,
+				requestId: req.id || 'unknown',
+			});
 			this.handleError(res, error);
 		}
 	}
@@ -106,6 +153,18 @@ class DashboardRestService {
 				method: 'GET',
 				path: '/charts/market-overview',
 				handler: this.getMarketOverview.bind(this),
+				middleware: auth,
+			},
+			{
+				method: 'GET',
+				path: '/charts/activity-by-time',
+				handler: this.getActivityByTime.bind(this),
+				middleware: auth,
+			},
+			{
+				method: 'GET',
+				path: '/charts/profitability-by-time',
+				handler: this.getProfitabilityByTime.bind(this),
 				middleware: auth,
 			},
 			{
