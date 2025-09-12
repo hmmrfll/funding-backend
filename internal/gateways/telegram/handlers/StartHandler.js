@@ -11,7 +11,7 @@ class StartHandler {
 		try {
 			const chatId = msg.chat.id;
 			const user = msg.from;
-			const firstName = user.first_name || 'Пользователь';
+			const firstName = user.first_name || 'User';
 
 			await this.sendWelcomeMessage(chatId, firstName);
 		} catch (error) {
@@ -34,7 +34,7 @@ class StartHandler {
 			inline_keyboard: [
 				[
 					{
-						text: 'Открыть приложение',
+						text: 'Open app',
 						web_app: {
 							url: this.config.miniAppUrl,
 						},

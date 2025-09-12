@@ -1,3 +1,3 @@
-Добро пожаловать в Funding Arbitrage Bot for Extended, {{userName}}! 🚀
+Welcome to Funding Arbitrage Bot for Extended, {{userName}}! 🚀
 
-Для открытия приложения нажмите на кнопку ниже 👇
+To open the application, click the button below 👇
