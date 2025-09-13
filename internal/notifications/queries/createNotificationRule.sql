@@ -3,6 +3,7 @@ INSERT INTO user_notification_rules (
     type,
     symbol,
     threshold,
-    enabled
-) VALUES ($1, $2, $3, $4, $5)
+    enabled,
+    cooldown_minutes
+) VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;

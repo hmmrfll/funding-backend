@@ -43,6 +43,7 @@ class NotificationStorage {
 				ruleData.symbol || null,
 				ruleData.threshold,
 				ruleData.enabled !== undefined ? ruleData.enabled : true,
+				ruleData.cooldownMinutes || 5,
 			]);
 
 			return NotificationRule.fromDatabase(result.rows[0]);
@@ -81,6 +82,7 @@ class NotificationStorage {
 				ruleId,
 				updates.enabled,
 				updates.threshold,
+				updates.cooldownMinutes,
 				userId,
 			]);
 
@@ -155,13 +157,18 @@ class NotificationStorage {
 		}
 	}
 
-	async hasRecentNotification(userId, ruleId, symbol) {
+	async hasRecentNotification(userId, ruleId, symbol, cooldownMinutes = 5) {
 		const client = this.db.getClient();
 
 		try {
 			await client.connect();
 
-			const result = await client.query(this.queries.checkRecentNotification, [userId, ruleId, symbol]);
+			const result = await client.query(this.queries.checkRecentNotification, [
+				userId,
+				ruleId,
+				symbol,
+				cooldownMinutes,
+			]);
 
 			return result.rows.length > 0;
 		} catch (error) {

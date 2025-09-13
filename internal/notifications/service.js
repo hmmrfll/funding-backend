@@ -22,6 +22,19 @@ class NotificationService {
 		if (!ruleData.threshold || ruleData.threshold <= 0 || ruleData.threshold > 1) {
 			throw new InvalidNotificationRuleError('threshold', 'must be between 0 and 1');
 		}
+
+		if (ruleData.cooldownMinutes !== undefined) {
+			if (
+				!Number.isInteger(ruleData.cooldownMinutes) ||
+				ruleData.cooldownMinutes < 0 ||
+				ruleData.cooldownMinutes > 1440
+			) {
+				throw new InvalidNotificationRuleError(
+					'cooldownMinutes',
+					'must be an integer between 0 and 1440 (0 = no cooldown, 1440 = 24 hours)',
+				);
+			}
+		}
 	}
 
 	async createNotificationRule(userId, ruleData) {
@@ -44,6 +57,15 @@ class NotificationService {
 		if (updates.threshold !== undefined) {
 			if (updates.threshold <= 0 || updates.threshold > 1) {
 				throw new InvalidNotificationRuleError('threshold', 'must be between 0 and 1');
+			}
+		}
+
+		if (updates.cooldownMinutes !== undefined) {
+			if (!Number.isInteger(updates.cooldownMinutes) || updates.cooldownMinutes < 0 || updates.cooldownMinutes > 1440) {
+				throw new InvalidNotificationRuleError(
+					'cooldownMinutes',
+					'must be an integer between 0 and 1440 (0 = no cooldown, 1440 = 24 hours)',
+				);
 			}
 		}
 
@@ -136,7 +158,17 @@ class NotificationService {
 	}
 
 	async shouldSendNotification(rule, opportunity) {
-		const hasRecent = await this.notificationStorage.hasRecentNotification(rule.userId, rule.id, opportunity.symbol);
+		// Если cooldownMinutes = 0, то всегда отправляем уведомления
+		if (rule.cooldownMinutes === 0) {
+			return true;
+		}
+
+		const hasRecent = await this.notificationStorage.hasRecentNotification(
+			rule.userId,
+			rule.id,
+			opportunity.symbol,
+			rule.cooldownMinutes,
+		);
 
 		return !hasRecent;
 	}
